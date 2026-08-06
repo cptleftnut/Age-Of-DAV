@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Greek Temple Pediment -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M34,42 L54,26 L74,42 Z" />
+    <!-- Temple Pillars -->
+    <path
+        android:fillColor="#FFC107"
+        android:pathData="M36,44 h6 v28 h-6 z M48,44 h6 v28 h-6 z M60,44 h6 v28 h-6 z M66,44 h6 v28 h-6 z" />
+    <!-- Temple Base -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M30,72 h48 v5 h-48 z M26,77 h56 v4 h-56 z" />
+    <!-- Poseidon Trident / Zeus Lightning Centerpiece -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M54,20 L57,30 L54,28 L51,30 Z M46,26 L49,32 L46,30 L44,31 Z M62,26 L64,31 L62,30 L59,32 Z M53,28 h2 v48 h-2 z" />
+</vector>

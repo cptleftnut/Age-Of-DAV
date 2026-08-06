@@ -1,0 +1,6 @@
+{
+  "name": "Age of Mythology 3D",
+  "description": "3D RTS mobilspil inspireret af Age of Mythology med guder, myteenheder, gudemagter og intuitiv mobilstyring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
