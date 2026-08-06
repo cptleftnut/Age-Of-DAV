@@ -310,7 +310,13 @@ class GameViewModel : ViewModel() {
                             SoundEffects.playAttack()
 
                             if (enemyUnit != null) {
-                                enemyUnit.currentHp -= unit.type.attack
+                                val atkDamage = unit.type.attack
+                                enemyUnit.currentHp -= atkDamage
+                                addParticle(
+                                    enemyUnit.position + Vector3(0f, 2.0f, 0f),
+                                    if (unit.type.isHero || unit.type.isMythUnit) "CRIT:-$atkDamage" else "DAMAGE:-$atkDamage",
+                                    1000L
+                                )
                                 if (enemyUnit.isDead()) {
                                     unit.targetEntityId = null
                                     unit.state = UnitState.IDLE
@@ -321,7 +327,13 @@ class GameViewModel : ViewModel() {
                                     }
                                 }
                             } else if (enemyBuilding != null) {
-                                enemyBuilding.currentHp -= unit.type.attack
+                                val atkDamage = unit.type.attack
+                                enemyBuilding.currentHp -= atkDamage
+                                addParticle(
+                                    enemyBuilding.position + Vector3(0f, 3.0f, 0f),
+                                    "DAMAGE:-$atkDamage",
+                                    1000L
+                                )
                                 if (enemyBuilding.isDead()) {
                                     unit.targetEntityId = null
                                     unit.state = UnitState.IDLE
@@ -596,6 +608,7 @@ class GameViewModel : ViewModel() {
                 // Strike strongest enemy in target radius
                 currentUnits.filter { it.owner == targetOwner && it.position.distanceTo(targetPos) < 6f }.forEach {
                     it.currentHp -= 300
+                    addParticle(it.position + Vector3(0f, 2.2f, 0f), "CRIT:-300", 1200L)
                 }
                 addParticle(targetPos, "LIGHTNING", 1500L)
             }
@@ -604,9 +617,11 @@ class GameViewModel : ViewModel() {
                     val offset = Vector3((Random.nextFloat() - 0.5f) * 8f, 0f, (Random.nextFloat() - 0.5f) * 8f)
                     currentUnits.filter { it.owner == targetOwner && it.position.distanceTo(targetPos + offset) < 5f }.forEach {
                         it.currentHp -= 180
+                        addParticle(it.position + Vector3(0f, 2.2f, 0f), "CRIT:-180", 1200L)
                     }
                     currentBuildings.filter { it.owner == targetOwner && it.position.distanceTo(targetPos + offset) < 5f }.forEach {
                         it.currentHp -= 350
+                        addParticle(it.position + Vector3(0f, 3.2f, 0f), "CRIT:-350", 1200L)
                     }
                     addParticle(targetPos + offset, "METEOR", 2000L)
                 }
@@ -614,18 +629,21 @@ class GameViewModel : ViewModel() {
             GodPower.HEALING_SPRING -> {
                 currentUnits.filter { it.owner == (if (isPlayer) Owner.PLAYER else Owner.AI_ENEMY) && it.position.distanceTo(targetPos) < 10f }.forEach {
                     it.currentHp = (it.currentHp + 200).coerceAtMost(it.type.maxHp)
+                    addParticle(it.position + Vector3(0f, 2.2f, 0f), "HEAL_NUM:+200", 1200L)
                 }
                 addParticle(targetPos, "HEAL", 3000L)
             }
             GodPower.RESTORATION -> {
                 currentUnits.filter { it.owner == Owner.PLAYER }.forEach {
                     it.currentHp = it.type.maxHp
+                    addParticle(it.position + Vector3(0f, 2.2f, 0f), "HEAL_NUM:+MAX", 1200L)
                 }
                 addParticle(targetPos, "HEAL", 2000L)
             }
             GodPower.TORNADO -> {
                 currentBuildings.filter { it.owner == targetOwner && it.position.distanceTo(targetPos) < 8f }.forEach {
                     it.currentHp -= 600
+                    addParticle(it.position + Vector3(0f, 3.2f, 0f), "CRIT:-600", 1200L)
                 }
                 addParticle(targetPos, "EXPLOSION", 3000L)
             }

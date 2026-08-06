@@ -297,14 +297,40 @@ private fun DrawScope.drawBuilding3D(
         drawCircle(Color.Yellow, radius = sizeScale * 1.8f, center = Offset(baseP.x, baseP.y), style = Stroke(width = 3.5f))
     }
 
-    // Health bar above structure
+    // Health bar above structure with dynamic color transition
     val hpPercent = bld.hpPercentage()
     val barWidth = sizeScale * 2.2f
     val barHeight = 8f
-    val barTop = topP.y - 20f
+    val barX = topP.x - barWidth / 2f
+    val barY = topP.y - 20f
 
-    drawRect(Color.DarkGray, topLeft = Offset(topP.x - barWidth / 2f, barTop), size = Size(barWidth, barHeight))
-    drawRect(if (bld.owner == Owner.PLAYER) Color.Green else Color.Red, topLeft = Offset(topP.x - barWidth / 2f, barTop), size = Size(barWidth * hpPercent, barHeight))
+    val bldHpColor = androidx.compose.ui.graphics.lerp(
+        start = Color(0xFFEF4444),
+        stop = Color(0xFF22C55E),
+        fraction = hpPercent.coerceIn(0f, 1f)
+    )
+
+    drawRoundRect(
+        color = Color(0xCC0F172A),
+        topLeft = Offset(barX - 1f, barY - 1f),
+        size = Size(barWidth + 2f, barHeight + 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+    )
+    if (hpPercent > 0.01f) {
+        drawRoundRect(
+            color = bldHpColor,
+            topLeft = Offset(barX, barY),
+            size = Size(barWidth * hpPercent, barHeight),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
+        )
+    }
+    drawRoundRect(
+        color = Color(0x66FFFFFF),
+        topLeft = Offset(barX - 1f, barY - 1f),
+        size = Size(barWidth + 2f, barHeight + 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f),
+        style = Stroke(width = 1f)
+    )
 }
 
 private fun DrawScope.drawUnit3D(
@@ -523,12 +549,40 @@ private fun DrawScope.drawUnit3D(
         drawLine(Color.Cyan, Offset(headP.x, headP.y), Offset(headP.x + 18f, headP.y - 10f + wingFlap), strokeWidth = 3f)
     }
 
-    // 8. UNIT HEALTH BAR
+    // 8. UNIT HEALTH BAR WITH DYNAMIC COLOR TRANSITION
     val hpPct = unit.hpPercentage()
-    val barW = unitRadius * 2.5f
-    val barH = 5f
-    drawRect(Color.DarkGray, topLeft = Offset(headP.x - barW / 2f, headP.y - 14f), size = Size(barW, barH))
-    drawRect(if (unit.owner == Owner.PLAYER) Color.Green else Color.Red, topLeft = Offset(headP.x - barW / 2f, headP.y - 14f), size = Size(barW * hpPct, barH))
+    val barW = unitRadius * 2.8f
+    val barH = 6f
+    val barX = headP.x - barW / 2f
+    val barY = headP.y - 16f
+
+    val hpColor = androidx.compose.ui.graphics.lerp(
+        start = Color(0xFFEF4444),
+        stop = Color(0xFF22C55E),
+        fraction = hpPct.coerceIn(0f, 1f)
+    )
+
+    drawRoundRect(
+        color = Color(0xCC0F172A),
+        topLeft = Offset(barX - 1f, barY - 1f),
+        size = Size(barW + 2f, barH + 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f)
+    )
+    if (hpPct > 0.01f) {
+        drawRoundRect(
+            color = hpColor,
+            topLeft = Offset(barX, barY),
+            size = Size(barW * hpPct, barH),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
+        )
+    }
+    drawRoundRect(
+        color = Color(0x66FFFFFF),
+        topLeft = Offset(barX - 1f, barY - 1f),
+        size = Size(barW + 2f, barH + 2f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f, 3f),
+        style = Stroke(width = 1f)
+    )
 }
 
 private fun DrawScope.drawSelectionBoxOverlay(
@@ -619,12 +673,70 @@ private val voiceTextPaint = android.graphics.Paint().apply {
     textAlign = android.graphics.Paint.Align.CENTER
 }
 
+private val damageTextPaint = android.graphics.Paint().apply {
+    textSize = 30f
+    isAntiAlias = true
+    typeface = android.graphics.Typeface.DEFAULT_BOLD
+    textAlign = android.graphics.Paint.Align.CENTER
+}
+
 private fun DrawScope.drawParticle3D(
     camera: Camera3D,
     particle: ParticleEffect,
     screenWidth: Float,
     screenHeight: Float
 ) {
+    val sp = camera.project(particle.pos, screenWidth, screenHeight)
+
+    if (particle.type.startsWith("DAMAGE:") || particle.type.startsWith("CRIT:") || particle.type.startsWith("HEAL_NUM:")) {
+        if (!sp.isVisible) return
+        val isCrit = particle.type.startsWith("CRIT:")
+        val isHeal = particle.type.startsWith("HEAL_NUM:")
+        val rawText = particle.type.substringAfter(":")
+
+        val elapsed = System.currentTimeMillis() - particle.startTimeMs
+        val progress = (elapsed.toFloat() / particle.durationMs.toFloat()).coerceIn(0f, 1f)
+
+        // Float upward & scale
+        val floatOffsetY = progress * 70f * camera.zoom
+        val scale = if (isCrit) {
+            (1.2f + kotlin.math.sin(progress * Math.PI).toFloat() * 0.45f) * camera.zoom
+        } else {
+            (1.0f + kotlin.math.sin(progress * Math.PI).toFloat() * 0.25f) * camera.zoom
+        }
+        val alpha = (1f - (progress * progress)).coerceIn(0f, 1f)
+
+        val textY = sp.y - 25f - floatOffsetY
+        val textX = sp.x
+
+        val textColor = when {
+            isHeal -> android.graphics.Color.rgb(34, 197, 94)  // Green
+            isCrit -> android.graphics.Color.rgb(255, 215, 0)  // Gold
+            else -> android.graphics.Color.rgb(239, 68, 68)   // Red
+        }
+
+        val baseTextSize = if (isCrit) 34f else 26f
+
+        // Draw dark outline for sharp contrast against map terrain
+        damageTextPaint.apply {
+            textSize = baseTextSize * scale
+            color = android.graphics.Color.BLACK
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = 6f
+            this.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+        }
+        drawContext.canvas.nativeCanvas.drawText(rawText, textX, textY, damageTextPaint)
+
+        // Draw vibrant inner fill text
+        damageTextPaint.apply {
+            color = textColor
+            style = android.graphics.Paint.Style.FILL
+            strokeWidth = 0f
+            this.alpha = (alpha * 255).toInt().coerceIn(0, 255)
+        }
+        drawContext.canvas.nativeCanvas.drawText(rawText, textX, textY, damageTextPaint)
+        return
+    }
     if (particle.type.startsWith("DEATH:")) {
         val parts = particle.type.split(":")
         val ownerName = parts.getOrNull(2) ?: "PLAYER"
@@ -705,7 +817,6 @@ private fun DrawScope.drawParticle3D(
         return
     }
 
-    val sp = camera.project(particle.pos, screenWidth, screenHeight)
     if (!sp.isVisible) return
 
     if (particle.type.startsWith("VOICE:")) {
