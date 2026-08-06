@@ -40,9 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import com.example.game.engine.Vector3
 import com.example.game.model.*
 import com.example.game.state.GameUiState
+import com.example.game.assets.iconRes
 import kotlinx.coroutines.delay
 
 @Composable
@@ -447,7 +449,11 @@ private fun GodPowersBar(
                 color = if (isSelected) Color(0xFFB45309) else Color(0xCC1F2937)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(power.iconSymbol, fontSize = 22.sp)
+                    Image(
+                        painter = painterResource(power.iconRes),
+                        contentDescription = power.displayName,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
         }
@@ -670,7 +676,11 @@ private fun UnitSelectionDeck(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(firstUnit.type.iconSymbol, fontSize = 24.sp)
+                    Image(
+                        painter = painterResource(firstUnit.type.iconRes),
+                        contentDescription = firstUnit.type.displayName,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
@@ -734,9 +744,19 @@ private fun UnitSelectionDeck(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(6.dp)
                             ) {
-                                Text(bType.iconSymbol, fontSize = 18.sp)
+                                Image(
+                                    painter = painterResource(bType.iconRes),
+                                    contentDescription = bType.displayName,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Text(bType.displayName, color = Color.White, fontSize = 10.sp)
-                                Text("🌲${bType.woodCost} ⛏️${bType.goldCost}", color = Color.Yellow, fontSize = 9.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Image(painter = painterResource(R.drawable.ic_resource_wood), contentDescription = "Wood", modifier = Modifier.size(9.dp))
+                                    Text("${bType.woodCost}", color = Color.Yellow, fontSize = 9.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Image(painter = painterResource(R.drawable.ic_resource_gold), contentDescription = "Gold", modifier = Modifier.size(9.dp))
+                                    Text("${bType.goldCost}", color = Color.Yellow, fontSize = 9.sp)
+                                }
                             }
                         }
                     }
@@ -775,7 +795,11 @@ private fun BuildingSelectionDeck(
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(building.type.iconSymbol, fontSize = 24.sp)
+                    Image(
+                        painter = painterResource(building.type.iconRes),
+                        contentDescription = building.type.displayName,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(building.type.displayName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -832,7 +856,11 @@ private fun BuildingSelectionDeck(
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(uType.iconSymbol, fontSize = 14.sp)
+                                    Image(
+                                    painter = painterResource(uType.iconRes),
+                                    contentDescription = uType.displayName,
+                                    modifier = Modifier.size(14.dp)
+                                )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Column {
                                         Text(uType.displayName, fontSize = 11.sp, color = Color.White)
@@ -897,7 +925,11 @@ private fun IdleCommandDeck(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(6.dp)
                             ) {
-                                Text(bType.iconSymbol, fontSize = 18.sp)
+                                Image(
+                                    painter = painterResource(bType.iconRes),
+                                    contentDescription = bType.displayName,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Text(bType.displayName, color = Color.White, fontSize = 10.sp)
                             }
                         }
