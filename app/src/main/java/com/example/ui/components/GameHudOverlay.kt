@@ -1,8 +1,11 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -10,6 +13,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -27,6 +32,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -455,47 +464,185 @@ private fun MiniMapRadar(
     onMiniMapJump: (Vector3) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val mapSize = 50f
+    val infiniteTransition = rememberInfiniteTransition(label = "RadarSweep")
+    val sweepAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+        ),
+        label = "RadarSweepAngle"
+    )
+
     Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .background(Color(0xDD000000), RoundedCornerShape(12.dp))
-            .border(2.dp, Color(0xFFB45309), RoundedCornerShape(12.dp))
-            .clickable {
-                // Center tap jump
-                onMiniMapJump(Vector3(25f, 0f, 25f))
+            .clip(CircleShape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF0F172A), Color(0xFF020617))
+                )
+            )
+            .border(
+                border = BorderStroke(
+                    width = 2.5.dp,
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            Color(0xFFD97706),
+                            Color(0xFFFFD700),
+                            Color(0xFFB45309),
+                            Color(0xFFFFD700),
+                            Color(0xFFD97706)
+                        )
+                    )
+                ),
+                shape = CircleShape
+            )
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val targetX = ((offset.x / size.width) * mapSize).coerceIn(0f, mapSize)
+                    val targetZ = ((offset.y / size.height) * mapSize).coerceIn(0f, mapSize)
+                    onMiniMapJump(Vector3(targetX, 0f, targetZ))
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures { change, _ ->
+                    change.consume()
+                    val targetX = ((change.position.x / size.width) * mapSize).coerceIn(0f, mapSize)
+                    val targetZ = ((change.position.y / size.height) * mapSize).coerceIn(0f, mapSize)
+                    onMiniMapJump(Vector3(targetX, 0f, targetZ))
+                }
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val mapSize = 50f
-            val scaleX = size.width / mapSize
-            val scaleY = size.height / mapSize
+            val w = size.width
+            val h = size.height
+            val scaleX = w / mapSize
+            val scaleY = h / mapSize
+            val centerOffset = Offset(w / 2f, h / 2f)
 
-            // Resource Nodes
+            // 1. Grid & Compass Radial Rings
+            drawCircle(
+                color = Color(0x3338BDF8),
+                radius = w * 0.45f,
+                style = Stroke(width = 1f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f)))
+            )
+            drawCircle(
+                color = Color(0x2238BDF8),
+                radius = w * 0.25f,
+                style = Stroke(width = 1f)
+            )
+
+            // Axis Crosshairs
+            drawLine(Color(0x22FFFFFF), Offset(w / 2f, 0f), Offset(w / 2f, h), strokeWidth = 1f)
+            drawLine(Color(0x22FFFFFF), Offset(0f, h / 2f), Offset(w, h / 2f), strokeWidth = 1f)
+
+            // 2. Rotating Tactical Radar Sweep Beam
+            val sweepRad = Math.toRadians(sweepAngle.toDouble())
+            val endX = centerOffset.x + (w * 0.5f) * kotlin.math.cos(sweepRad).toFloat()
+            val endY = centerOffset.y + (h * 0.5f) * kotlin.math.sin(sweepRad).toFloat()
+            drawLine(
+                color = Color(0x6610B981),
+                start = centerOffset,
+                end = Offset(endX, endY),
+                strokeWidth = 2f
+            )
+
+            // 3. Resource Nodes
             resourceNodes.forEach { node ->
-                if (node.type == ResourceNodeType.GOLD_MINE) {
-                    drawCircle(Color(0xFFFFD700), radius = 3f, center = Offset(node.position.x * scaleX, node.position.z * scaleY))
+                val px = node.position.x * scaleX
+                val py = node.position.z * scaleY
+                when (node.type) {
+                    ResourceNodeType.GOLD_MINE -> {
+                        drawCircle(Color(0xFFFFD700), radius = 3.5f, center = Offset(px, py))
+                        drawCircle(Color.White, radius = 1.5f, center = Offset(px, py))
+                    }
+                    ResourceNodeType.FOREST_TREE -> {
+                        drawCircle(Color(0xFF22C55E), radius = 2.5f, center = Offset(px, py))
+                    }
+                    ResourceNodeType.BERRY_BUSH, ResourceNodeType.HUNT_ANIMAL -> {
+                        drawCircle(Color(0xFFF59E0B), radius = 2.5f, center = Offset(px, py))
+                    }
+                    ResourceNodeType.RELIC -> {
+                        drawCircle(Color(0xFF00BCD4), radius = 3.5f, center = Offset(px, py))
+                        drawCircle(Color.White, radius = 1.5f, center = Offset(px, py))
+                    }
                 }
             }
 
-            // Buildings
+            // 4. Buildings
             buildings.forEach { bld ->
-                val c = if (bld.owner == Owner.PLAYER) Color(0xFF3B82F6) else Color(0xFFEF4444)
-                drawRect(c, topLeft = Offset(bld.position.x * scaleX - 3f, bld.position.z * scaleY - 3f), size = Size(6f, 6f))
+                val px = bld.position.x * scaleX
+                val py = bld.position.z * scaleY
+                val isPlayer = bld.owner == Owner.PLAYER
+                val bColor = if (isPlayer) Color(0xFF3B82F6) else Color(0xFFEF4444)
+                val bSize = if (bld.type == BuildingType.TOWN_CENTER) 8f else 6f
+
+                drawRect(
+                    color = bColor,
+                    topLeft = Offset(px - bSize / 2f, py - bSize / 2f),
+                    size = Size(bSize, bSize)
+                )
+                if (bld.type == BuildingType.TOWN_CENTER) {
+                    drawRect(
+                        color = Color.White,
+                        topLeft = Offset(px - 1.5f, py - 1.5f),
+                        size = Size(3f, 3f)
+                    )
+                }
             }
 
-            // Units
+            // 5. Real-Time Unit Positions
             units.forEach { unit ->
-                val c = if (unit.owner == Owner.PLAYER) Color.Cyan else Color.Red
-                drawCircle(c, radius = 2f, center = Offset(unit.position.x * scaleX, unit.position.z * scaleY))
+                val px = unit.position.x * scaleX
+                val py = unit.position.z * scaleY
+                val isPlayer = unit.owner == Owner.PLAYER
+
+                when {
+                    unit.type.isHero || unit.type.isMythUnit -> {
+                        // Myth / Hero Unit Highlighted Icon
+                        val heroColor = if (isPlayer) Color(0xFFFFD700) else Color(0xFFFF4444)
+                        drawCircle(heroColor, radius = 4.5f, center = Offset(px, py))
+                        drawCircle(Color.White, radius = 2f, center = Offset(px, py))
+                    }
+                    else -> {
+                        // Standard Unit Dot
+                        val unitColor = if (isPlayer) Color(0xFF06B6D4) else Color(0xFFDC2626)
+                        drawCircle(unitColor, radius = 2.5f, center = Offset(px, py))
+                    }
+                }
             }
 
-            // Camera View Rectangle
-            val camX = cameraTargetX * scaleX
-            val camY = cameraTargetZ * scaleY
+            // 6. Camera Viewport Field-of-View Rect
+            val camPx = cameraTargetX * scaleX
+            val camPy = cameraTargetZ * scaleY
+            val boxW = 28f
+            val boxH = 20f
+
             drawRect(
-                Color.Yellow,
-                topLeft = Offset(camX - 12f, camY - 12f),
-                size = Size(24f, 24f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
+                color = Color(0xFFFFD700),
+                topLeft = Offset(camPx - boxW / 2f, camPy - boxH / 2f),
+                size = Size(boxW, boxH),
+                style = Stroke(width = 1.8f)
+            )
+
+            // Center Camera Reticle Dot
+            drawCircle(Color(0xFFFFD700), radius = 2f, center = Offset(camPx, camPy))
+
+            // 7. Cardinal Direction Compass Marker (N)
+            drawContext.canvas.nativeCanvas.drawText(
+                "N",
+                w / 2f,
+                14f,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.rgb(255, 215, 0)
+                    textSize = 18f
+                    isAntiAlias = true
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
             )
         }
     }
