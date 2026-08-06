@@ -21,9 +21,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import com.example.game.engine.SoundEffects
 import com.example.game.state.GameMatchStats
 import com.example.game.state.GameUiState
+import com.example.R
 
 /**
  * Production-Grade Modal Game-End Screen Overlay.
@@ -170,7 +172,7 @@ fun GameEndModalOverlay(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     repeat(3) { index ->
                         Text(
-                            text = if (index < stars) "⭐" else "▪",
+                            text = if (index < stars) "★" else "☆",
                             fontSize = 18.sp,
                             color = if (index < stars) Color(0xFFFFD700) else Color(0xFF475569)
                         )
@@ -255,7 +257,12 @@ fun GameEndModalOverlay(
                             .height(44.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("🔄", fontSize = 14.sp)
+                            Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Refresh,
+                            contentDescription = "Restart",
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (isVictory) "PLAY AGAIN" else "RETRY BATTLE",
@@ -279,14 +286,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                icon = "⏱️",
+                iconRes = R.drawable.ic_gp_ceasefire,
                 label = "Match Duration",
                 value = formattedTime,
                 valueColor = Color(0xFF60A5FA),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                icon = "⚔️",
+                iconRes = R.drawable.ic_unit_hoplite,
                 label = "Enemies Slain",
                 value = "${stats.enemyUnitsKilled} Units",
                 valueColor = Color(0xFFEF4444),
@@ -299,14 +306,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                icon = "🛡️",
+                iconRes = R.drawable.ic_building_armory,
                 label = "Army Recruited",
                 value = "${stats.playerUnitsTrained} Units",
                 valueColor = Color(0xFF34D399),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                icon = "🏰",
+                iconRes = R.drawable.ic_building_town_center,
                 label = "Buildings Destroyed",
                 value = "${stats.buildingsDestroyed}",
                 valueColor = Color(0xFFF59E0B),
@@ -319,14 +326,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                icon = "⚡",
+                iconRes = R.drawable.ic_resource_favor,
                 label = "God Powers Cast",
                 value = "${stats.godPowersCast}",
                 valueColor = Color(0xFFA855F7),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                icon = "🌾",
+                iconRes = R.drawable.ic_resource_food,
                 label = "Resources Harvested",
                 value = "${stats.totalResourcesGathered}",
                 valueColor = Color(0xFFFDE047),
@@ -419,25 +426,29 @@ private fun EconomyStatsTab(stats: GameMatchStats, maxAge: String) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ResourceBarRow("🥩 Food", stats.totalFoodGathered, stats.totalFoodGathered / total, Color(0xFF34D399))
+            ResourceBarRow(R.drawable.ic_resource_food, "Food", stats.totalFoodGathered, stats.totalFoodGathered / total, Color(0xFF34D399))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow("🌲 Wood", stats.totalWoodGathered, stats.totalWoodGathered / total, Color(0xFF818CF8))
+            ResourceBarRow(R.drawable.ic_resource_wood, "Wood", stats.totalWoodGathered, stats.totalWoodGathered / total, Color(0xFF818CF8))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow("⛏️ Gold", stats.totalGoldGathered, stats.totalGoldGathered / total, Color(0xFFFDE047))
+            ResourceBarRow(R.drawable.ic_resource_gold, "Gold", stats.totalGoldGathered, stats.totalGoldGathered / total, Color(0xFFFDE047))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow("⚡ Favor", stats.totalFavorGathered, stats.totalFavorGathered / total, Color(0xFFA855F7))
+            ResourceBarRow(R.drawable.ic_resource_favor, "Favor", stats.totalFavorGathered, stats.totalFavorGathered / total, Color(0xFFA855F7))
         }
     }
 }
 
 @Composable
-private fun ResourceBarRow(label: String, amount: Int, ratio: Float, color: Color) {
+private fun ResourceBarRow(iconRes: Int, label: String, amount: Int, ratio: Float, color: Color) {
     Column {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(label, color = Color.White, fontSize = 11.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(painter = painterResource(iconRes), contentDescription = null, modifier = Modifier.size(11.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(label, color = Color.White, fontSize = 11.sp)
+            }
             Text("$amount", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(2.dp))
@@ -455,7 +466,7 @@ private fun ResourceBarRow(label: String, amount: Int, ratio: Float, color: Colo
 
 @Composable
 private fun StatMetricCard(
-    icon: String,
+    iconRes: Int,
     label: String,
     value: String,
     valueColor: Color,
@@ -470,7 +481,11 @@ private fun StatMetricCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(8.dp)
         ) {
-            Text(icon, fontSize = 18.sp)
+            Image(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
             Spacer(modifier = Modifier.width(6.dp))
             Column {
                 Text(label, color = Color(0xFF94A3B8), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -502,7 +517,16 @@ fun PauseMenuDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(20.dp)
             ) {
-                Text("⏸️ GAME PAUSED", color = Color(0xFFFFD700), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.Pause,
+                            contentDescription = "Paused",
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("GAME PAUSED", color = Color(0xFFFFD700), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
