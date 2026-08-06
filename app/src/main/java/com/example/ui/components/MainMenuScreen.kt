@@ -29,6 +29,7 @@ import com.example.game.model.Faction
 import com.example.game.model.MajorGod
 import com.example.game.state.CampaignData
 import com.example.game.state.CampaignMission
+import com.example.game.assets.iconRes
 
 @Composable
 fun MainMenuScreen(
@@ -216,7 +217,11 @@ private fun FactionSetupScreen(
                             .border(1.dp, if (isSel) Color.Yellow else Color.Gray, RoundedCornerShape(12.dp))
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
-                            Text(f.iconSymbol, fontSize = 20.sp)
+                            Image(
+                            painter = painterResource(f.iconRes),
+                            contentDescription = f.displayName,
+                            modifier = Modifier.size(20.dp)
+                        )
                             Text(f.displayName, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -257,7 +262,15 @@ private fun FactionSetupScreen(
                     Text("God Passive Bonus:", color = Color(0xFFF59E0B), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text(selectedGod.passiveBonus, color = Color.White, fontSize = 12.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("Starting God Power: ${selectedGod.startingGodPower.displayName} (${selectedGod.startingGodPower.iconSymbol})", color = Color.Cyan, fontSize = 12.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(selectedGod.startingGodPower.iconRes),
+                                contentDescription = selectedGod.startingGodPower.displayName,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Starting God Power: ${selectedGod.startingGodPower.displayName}", color = Color.Cyan, fontSize = 12.sp)
+                        }
                 }
             }
         }
@@ -276,7 +289,11 @@ private fun FactionSetupScreen(
                             .border(1.dp, if (isSel) Color.Red else Color.Gray, RoundedCornerShape(12.dp))
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
-                            Text(ef.iconSymbol, fontSize = 20.sp)
+                            Image(
+                            painter = painterResource(ef.iconRes),
+                            contentDescription = ef.displayName,
+                            modifier = Modifier.size(20.dp)
+                        )
                             Text(ef.displayName, color = Color.White, fontSize = 10.sp)
                         }
                     }
