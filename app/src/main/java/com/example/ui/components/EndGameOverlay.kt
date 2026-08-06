@@ -286,14 +286,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                iconRes = R.drawable.ic_gp_ceasefire,
+                iconRes = R.drawable.sprite_gp_ceasefire,
                 label = "Match Duration",
                 value = formattedTime,
                 valueColor = Color(0xFF60A5FA),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                iconRes = R.drawable.ic_unit_hoplite,
+                iconRes = R.drawable.sprite_unit_hoplite,
                 label = "Enemies Slain",
                 value = "${stats.enemyUnitsKilled} Units",
                 valueColor = Color(0xFFEF4444),
@@ -306,14 +306,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                iconRes = R.drawable.ic_building_armory,
+                iconRes = R.drawable.sprite_building_armory,
                 label = "Army Recruited",
                 value = "${stats.playerUnitsTrained} Units",
                 valueColor = Color(0xFF34D399),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                iconRes = R.drawable.ic_building_town_center,
+                iconRes = R.drawable.sprite_building_town_center,
                 label = "Buildings Destroyed",
                 value = "${stats.buildingsDestroyed}",
                 valueColor = Color(0xFFF59E0B),
@@ -326,14 +326,14 @@ private fun OverviewStatsTab(stats: GameMatchStats, formattedTime: String) {
             modifier = Modifier.fillMaxWidth()
         ) {
             StatMetricCard(
-                iconRes = R.drawable.ic_resource_favor,
+                iconRes = R.drawable.sprite_resource_favor,
                 label = "God Powers Cast",
                 value = "${stats.godPowersCast}",
                 valueColor = Color(0xFFA855F7),
                 modifier = Modifier.weight(1f)
             )
             StatMetricCard(
-                iconRes = R.drawable.ic_resource_food,
+                iconRes = R.drawable.sprite_resource_food,
                 label = "Resources Harvested",
                 value = "${stats.totalResourcesGathered}",
                 valueColor = Color(0xFFFDE047),
@@ -426,13 +426,13 @@ private fun EconomyStatsTab(stats: GameMatchStats, maxAge: String) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ResourceBarRow(R.drawable.ic_resource_food, "Food", stats.totalFoodGathered, stats.totalFoodGathered / total, Color(0xFF34D399))
+            ResourceBarRow(R.drawable.sprite_resource_food, "Food", stats.totalFoodGathered, stats.totalFoodGathered / total, Color(0xFF34D399))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow(R.drawable.ic_resource_wood, "Wood", stats.totalWoodGathered, stats.totalWoodGathered / total, Color(0xFF818CF8))
+            ResourceBarRow(R.drawable.sprite_resource_wood, "Wood", stats.totalWoodGathered, stats.totalWoodGathered / total, Color(0xFF818CF8))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow(R.drawable.ic_resource_gold, "Gold", stats.totalGoldGathered, stats.totalGoldGathered / total, Color(0xFFFDE047))
+            ResourceBarRow(R.drawable.sprite_resource_gold, "Gold", stats.totalGoldGathered, stats.totalGoldGathered / total, Color(0xFFFDE047))
             Spacer(modifier = Modifier.height(6.dp))
-            ResourceBarRow(R.drawable.ic_resource_favor, "Favor", stats.totalFavorGathered, stats.totalFavorGathered / total, Color(0xFFA855F7))
+            ResourceBarRow(R.drawable.sprite_resource_favor, "Favor", stats.totalFavorGathered, stats.totalFavorGathered / total, Color(0xFFA855F7))
         }
     }
 }
