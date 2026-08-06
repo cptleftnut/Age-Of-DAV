@@ -29,11 +29,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import com.example.game.engine.SoundEffects
 import com.example.game.model.BuildingEntity
 import com.example.game.model.BuildingType
 import com.example.game.model.Resources
 import com.example.game.model.UnitType
+import com.example.game.assets.iconRes
 
 /**
  * Bottom-aligned dedicated Barracks Command & Training Panel for RTS gameplay.
@@ -100,7 +102,11 @@ fun BarracksPanel(
                             .background(Color(0xFFB45309), CircleShape)
                             .border(1.5.dp, Color(0xFFFFD700), CircleShape)
                     ) {
-                        Text(building.type.iconSymbol, fontSize = 20.sp)
+                        Image(
+                            painter = painterResource(building.type.iconRes),
+                            contentDescription = building.type.displayName,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -199,7 +205,11 @@ fun BarracksPanel(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(activeItem.unitType.iconSymbol, fontSize = 16.sp)
+                                Image(
+                                    painter = painterResource(activeItem.unitType.iconRes),
+                                    contentDescription = activeItem.unitType.displayName,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "Training ${activeItem.unitType.displayName}...",
@@ -263,7 +273,11 @@ fun BarracksPanel(
                                             .background(Color(0xFF334155), CircleShape)
                                             .clickable { onCancelQueueItem(idx + 1) }
                                     ) {
-                                        Text(qItem.unitType.iconSymbol, fontSize = 11.sp)
+                                        Image(
+                                            painter = painterResource(qItem.unitType.iconRes),
+                                            contentDescription = qItem.unitType.displayName,
+                                            modifier = Modifier.size(11.dp)
+                                        )
                                     }
                                 }
                             }
@@ -317,7 +331,11 @@ fun BarracksPanel(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.padding(8.dp)
                         ) {
-                            Text(unitType.iconSymbol, fontSize = 24.sp)
+                            Image(
+                                painter = painterResource(unitType.iconRes),
+                                contentDescription = unitType.displayName,
+                                modifier = Modifier.size(24.dp)
+                            )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = unitType.displayName,
@@ -389,7 +407,11 @@ fun BarracksPanel(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(unit.iconSymbol, fontSize = 16.sp)
+                            Image(
+                                painter = painterResource(unit.iconRes),
+                                contentDescription = unit.displayName,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "${unit.displayName}:",
