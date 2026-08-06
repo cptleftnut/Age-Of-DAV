@@ -104,3 +104,13 @@ object AssetManager {
         GatherResourceType.FAVOR -> R.drawable.ic_resource_favor
     }
 }
+
+/* ── Extension Properties for easy access ── */
+
+val UnitType.iconRes: Int get() = AssetManager.getUnitDrawable(this)
+val BuildingType.iconRes: Int get() = AssetManager.getBuildingDrawable(this)
+val ResourceNodeType.iconRes: Int get() = AssetManager.getResourceDrawable(this)
+val Faction.iconRes: Int get() = AssetManager.getFactionDrawable(this)
+val GodPower.iconRes: Int get() = AssetManager.getGodPowerDrawable(this)
+val TerrainType.iconRes: Int get() = AssetManager.getTerrainDrawable(this)
+val GatherResourceType.iconRes: Int get() = AssetManager.getGatherResourceDrawable(this)
