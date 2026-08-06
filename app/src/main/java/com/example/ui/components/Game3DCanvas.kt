@@ -145,6 +145,7 @@ fun Game3DCanvas(
         }
 
         // 4. Draw 3D Units, Selection Indicators & Target Vectors
+        val timeMs = System.currentTimeMillis()
         units.forEach { unit ->
             val isSelected = selectedUnitIds.contains(unit.id)
             val isPreviewSelected = previewSelectedIds.contains(unit.id)
@@ -155,6 +156,7 @@ fun Game3DCanvas(
                 isPreviewSelected = isPreviewSelected,
                 animPulse = animPulse,
                 alphaPulse = alphaPulse,
+                timeMs = timeMs,
                 screenWidth = w,
                 screenHeight = h
             )
@@ -312,11 +314,82 @@ private fun DrawScope.drawUnit3D(
     isPreviewSelected: Boolean,
     animPulse: Float,
     alphaPulse: Float,
+    timeMs: Long,
     screenWidth: Float,
     screenHeight: Float
 ) {
-    val baseP = camera.project(unit.position, screenWidth, screenHeight)
-    val headP = camera.project(unit.position + Vector3(0f, 2.2f, 0f), screenWidth, screenHeight)
+    val seed = (unit.id * 31L) % 1000L
+
+    // Procedural State Transition Animations
+    var animPosY = 0f
+    var animPosX = 0f
+    var bodyLeanX = 0f
+    var bodyLeanY = 0f
+    var legSwingL = 0f
+    var legSwingR = 0f
+    var attackLungeX = 0f
+    var attackLungeY = 0f
+    var isAttackingFrame = false
+
+    val dirRad = Math.toRadians(unit.rotationDegrees.toDouble())
+    val forwardDirX = kotlin.math.sin(dirRad).toFloat()
+    val forwardDirZ = kotlin.math.cos(dirRad).toFloat()
+
+    when (unit.state) {
+        UnitState.IDLE -> {
+            // Idle Breathing & Gentle Stance Oscillation
+            animPosY = kotlin.math.sin((timeMs + seed) * 0.0035).toFloat() * 0.15f
+            animPosX = kotlin.math.cos((timeMs + seed) * 0.002).toFloat() * 0.08f
+            legSwingL = 0f
+            legSwingR = 0f
+        }
+        UnitState.MOVING -> {
+            // Walking / Running Gait with Bouncy Stride
+            val stridePhase = (timeMs + seed) * 0.014
+            val bounce = kotlin.math.abs(kotlin.math.sin(stridePhase)).toFloat() * 0.35f
+            animPosY = bounce
+
+            // Forward body lean into movement direction
+            bodyLeanX = forwardDirX * 0.35f
+            bodyLeanY = forwardDirZ * 0.25f
+
+            // Leg stride swing
+            val strideSwing = kotlin.math.sin(stridePhase).toFloat() * 12f * camera.zoom
+            legSwingL = strideSwing
+            legSwingR = -strideSwing
+        }
+        UnitState.ATTACKING -> {
+            // Combat Lunge & Weapon Strike Animation Cycle
+            val elapsedAttack = (timeMs - unit.lastAttackTimeMs).coerceAtLeast(0L)
+            val attackProgress = (elapsedAttack % 1200L) / 1200f
+
+            val lungeFactor = when {
+                attackProgress < 0.30f -> -0.3f * (attackProgress / 0.30f) // Wind-up recoil
+                attackProgress < 0.55f -> {
+                    isAttackingFrame = true
+                    1.2f * kotlin.math.sin(((attackProgress - 0.30f) / 0.25f) * Math.PI).toFloat() // Explosive strike!
+                }
+                else -> 0.2f * (1f - ((attackProgress - 0.55f) / 0.45f)) // Guard stance recovery
+            }
+
+            attackLungeX = forwardDirX * lungeFactor
+            attackLungeY = forwardDirZ * lungeFactor
+            legSwingL = 6f * camera.zoom
+            legSwingR = -6f * camera.zoom
+        }
+        UnitState.GATHERING, UnitState.BUILDING -> {
+            // Work / Harvesting Chop Motion
+            val chopPhase = (timeMs + seed) * 0.008
+            animPosY = kotlin.math.sin(chopPhase).toFloat() * 0.2f
+            bodyLeanX = forwardDirX * (0.3f + kotlin.math.sin(chopPhase).toFloat() * 0.2f)
+        }
+    }
+
+    // Apply state transition vector offset
+    val animatedPos = unit.position + Vector3(animPosX + bodyLeanX + attackLungeX, animPosY, bodyLeanY + attackLungeY)
+
+    val baseP = camera.project(animatedPos, screenWidth, screenHeight)
+    val headP = camera.project(animatedPos + Vector3(0f, 2.2f, 0f), screenWidth, screenHeight)
     if (!baseP.isVisible) return
 
     val unitRadius = if (unit.type.isMythUnit) 16f * camera.zoom else 10f * camera.zoom
@@ -329,13 +402,12 @@ private fun DrawScope.drawUnit3D(
     // 1. DUAL SELECTION RING SYSTEM UNDER UNIT FEET
     if (isSelected || isPreviewSelected) {
         val ringColor = when {
-            isPreviewSelected -> Color(0xFFFDE047) // Bright Yellow for box select preview
+            isPreviewSelected -> Color(0xFFFDE047)
             unit.owner == Owner.PLAYER && unit.type.isHero -> Color(0xFFFFD700)
-            unit.owner == Owner.PLAYER -> Color(0xFF10B981) // Emerald Green for active selection
+            unit.owner == Owner.PLAYER -> Color(0xFF10B981)
             else -> Color(0xFFEF4444)
         }
 
-        // Inner Solid Glow Ring
         drawOval(
             ringColor.copy(alpha = alphaPulse * 0.5f),
             topLeft = Offset(baseP.x - unitRadius * 1.5f, baseP.y - unitRadius * 0.75f),
@@ -343,7 +415,6 @@ private fun DrawScope.drawUnit3D(
             style = Stroke(width = 2f)
         )
 
-        // Outer Rotating Dashed Ring
         val dashEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), animPulse)
         drawOval(
             ringColor.copy(alpha = alphaPulse),
@@ -357,12 +428,11 @@ private fun DrawScope.drawUnit3D(
     if (isSelected && unit.targetPosition != null) {
         val targetP = camera.project(unit.targetPosition!!, screenWidth, screenHeight)
         val targetColor = when (unit.state) {
-            UnitState.ATTACKING -> Color(0xFFEF4444) // Red vector for attack command
-            UnitState.GATHERING -> Color(0xFFF59E0B) // Amber vector for resource gather
-            else -> Color(0xFF10B981)               // Green vector for move command
+            UnitState.ATTACKING -> Color(0xFFEF4444)
+            UnitState.GATHERING -> Color(0xFFF59E0B)
+            else -> Color(0xFF10B981)
         }
 
-        // Dashed Command Movement / Attack Line
         val pathDash = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), animPulse)
         drawLine(
             color = targetColor.copy(alpha = 0.85f),
@@ -372,40 +442,88 @@ private fun DrawScope.drawUnit3D(
             pathEffect = pathDash
         )
 
-        // Ground Target Reticle Ring at Target Position
         drawOval(
             color = targetColor.copy(alpha = alphaPulse),
             topLeft = Offset(targetP.x - 16f, targetP.y - 8f),
             size = Size(32f, 16f),
             style = Stroke(width = 2.5f)
         )
-        // Crosshair reticle ticks
         drawLine(targetColor, Offset(targetP.x - 22f, targetP.y), Offset(targetP.x - 12f, targetP.y), strokeWidth = 2f)
         drawLine(targetColor, Offset(targetP.x + 12f, targetP.y), Offset(targetP.x + 22f, targetP.y), strokeWidth = 2f)
         drawLine(targetColor, Offset(targetP.x, targetP.y - 12f), Offset(targetP.x, targetP.y - 6f), strokeWidth = 2f)
         drawLine(targetColor, Offset(targetP.x, targetP.y + 6f), Offset(targetP.x, targetP.y + 12f), strokeWidth = 2f)
     }
 
-    // Unit Ground Shadow
+    // 3. GROUND SHADOW (Dynamic scaling during bounce)
+    val shadowScale = (1f - (animPosY * 0.3f)).coerceIn(0.6f, 1.2f)
     drawOval(
         Color(0x66000000),
-        topLeft = Offset(baseP.x - unitRadius * 1.2f, baseP.y - unitRadius * 0.5f),
-        size = Size(unitRadius * 2.4f, unitRadius * 1.0f)
+        topLeft = Offset(baseP.x - unitRadius * 1.2f * shadowScale, baseP.y - unitRadius * 0.5f * shadowScale),
+        size = Size(unitRadius * 2.4f * shadowScale, unitRadius * 1.0f * shadowScale)
     )
 
-    // Unit 3D Body Line & Head Circle
-    drawLine(color, Offset(baseP.x, baseP.y), Offset(headP.x, headP.y), strokeWidth = unitRadius * 0.9f)
+    // 4. ANIMATED LEGS (Stride lines)
+    val legColor = color.copy(alpha = 0.9f)
+    val legBaseY = baseP.y
+    val legKneeY = baseP.y - (baseP.y - headP.y) * 0.35f
+
+    drawLine(legColor, Offset(baseP.x - 4f * camera.zoom + legSwingL, legBaseY), Offset(baseP.x, legKneeY), strokeWidth = unitRadius * 0.4f)
+    drawLine(legColor, Offset(baseP.x + 4f * camera.zoom + legSwingR, legBaseY), Offset(baseP.x, legKneeY), strokeWidth = unitRadius * 0.4f)
+
+    // 5. 3D BODY TORSO LINE & HEAD
+    drawLine(color, Offset(baseP.x, legKneeY), Offset(headP.x, headP.y), strokeWidth = unitRadius * 0.9f)
     drawCircle(if (unit.type.isHero) Color(0xFFFFD700) else color, radius = unitRadius * 0.8f, center = Offset(headP.x, headP.y))
 
-    // Special Myth Horns / Wings / Symbol
+    // 6. WEAPON & ATTACK SLASH VISUAL EFFECTS
+    val weaponColor = if (unit.owner == Owner.PLAYER) Color(0xFFE2E8F0) else Color(0xFFFF8A80)
+    val handX = headP.x + forwardDirX * unitRadius * 1.2f
+    val handY = headP.y + forwardDirZ * unitRadius * 0.6f
+
+    when (unit.type) {
+        UnitType.TOXOTES_ARCHER, UnitType.PHARAOH -> {
+            // Bow / Magic Staff
+            drawLine(Color(0xFF8D6E63), Offset(headP.x, headP.y), Offset(handX, handY), strokeWidth = 3f)
+            if (isAttackingFrame) {
+                // Arrow / Energy Trajectory Streak
+                val streakEnd = Offset(handX + forwardDirX * 45f, handY + forwardDirZ * 30f)
+                drawLine(Color(0xFFFFD700), Offset(handX, handY), streakEnd, strokeWidth = 4f)
+                drawCircle(Color.White, radius = 6f, center = streakEnd)
+            }
+        }
+        UnitType.HERCULES, UnitType.TITAN, UnitType.MINOTAUR, UnitType.CYCLOPS -> {
+            // Heavy Weapon / Shockwave Slam
+            if (isAttackingFrame) {
+                drawCircle(
+                    color = Color(0xFFFFD700).copy(alpha = 0.85f),
+                    radius = unitRadius * 2.5f,
+                    center = Offset(handX, handY),
+                    style = Stroke(width = 4f)
+                )
+            }
+        }
+        else -> {
+            // Sword / Spear / Axe
+            val tipX = handX + forwardDirX * unitRadius * 1.5f
+            val tipY = handY + forwardDirZ * unitRadius * 1.0f
+            drawLine(weaponColor, Offset(handX, handY), Offset(tipX, tipY), strokeWidth = 3.5f)
+            if (isAttackingFrame) {
+                // Slash Arc Highlight
+                drawLine(Color.Yellow, Offset(handX, handY), Offset(tipX + forwardDirX * 15f, tipY), strokeWidth = 5f)
+            }
+        }
+    }
+
+    // 7. MYTH UNIT SPECIAL DECORATIONS
     if (unit.type == UnitType.MINOTAUR) {
         drawLine(Color.White, Offset(headP.x - 8f, headP.y - 4f), Offset(headP.x - 14f, headP.y - 12f), strokeWidth = 3f)
         drawLine(Color.White, Offset(headP.x + 8f, headP.y - 4f), Offset(headP.x + 14f, headP.y - 12f), strokeWidth = 3f)
     } else if (unit.type == UnitType.VALKYRIE) {
-        drawCircle(Color.Cyan, radius = unitRadius * 1.1f, center = Offset(headP.x, headP.y), style = Stroke(width = 2f))
+        val wingFlap = kotlin.math.sin((timeMs + seed) * 0.012).toFloat() * 12f
+        drawLine(Color.Cyan, Offset(headP.x, headP.y), Offset(headP.x - 18f, headP.y - 10f + wingFlap), strokeWidth = 3f)
+        drawLine(Color.Cyan, Offset(headP.x, headP.y), Offset(headP.x + 18f, headP.y - 10f + wingFlap), strokeWidth = 3f)
     }
 
-    // Unit Health Bar
+    // 8. UNIT HEALTH BAR
     val hpPct = unit.hpPercentage()
     val barW = unitRadius * 2.5f
     val barH = 5f
@@ -507,6 +625,86 @@ private fun DrawScope.drawParticle3D(
     screenWidth: Float,
     screenHeight: Float
 ) {
+    if (particle.type.startsWith("DEATH:")) {
+        val parts = particle.type.split(":")
+        val ownerName = parts.getOrNull(2) ?: "PLAYER"
+        val rotDegrees = parts.getOrNull(3)?.toFloatOrNull() ?: 0f
+
+        val elapsed = System.currentTimeMillis() - particle.startTimeMs
+        val progress = (elapsed.toFloat() / particle.durationMs.toFloat()).coerceIn(0f, 1f)
+
+        val ownerColor = if (ownerName == "PLAYER") Color(0xFF2196F3) else Color(0xFFF44336)
+
+        // 1. Collapse rotation angle: 0deg (upright) -> 90deg (flat on ground)
+        val collapseProgress = (progress / 0.35f).coerceIn(0f, 1f)
+        val tiltAngleRad = collapseProgress * (Math.PI / 2.0).toFloat()
+
+        // 2. Dissolve / Sinking offset
+        val sinkDepth = if (progress > 0.45f) (progress - 0.45f) * 2.5f else 0f
+        val corpseAlpha = (1f - (progress - 0.4f) * 1.66f).coerceIn(0f, 1f)
+
+        val basePos = particle.pos + Vector3(0f, -sinkDepth, 0f)
+        val baseP = camera.project(basePos, screenWidth, screenHeight)
+
+        val dirRad = Math.toRadians(rotDegrees.toDouble())
+        val headOffsetX = kotlin.math.sin(dirRad).toFloat() * kotlin.math.sin(tiltAngleRad).toFloat() * 2.2f
+        val headOffsetY = kotlin.math.cos(tiltAngleRad).toFloat() * 2.2f
+        val headOffsetZ = kotlin.math.cos(dirRad).toFloat() * kotlin.math.sin(tiltAngleRad).toFloat() * 2.2f
+
+        val headP = camera.project(basePos + Vector3(headOffsetX, headOffsetY, headOffsetZ), screenWidth, screenHeight)
+
+        if (baseP.isVisible && corpseAlpha > 0.01f) {
+            // Corpse Shadow / Blood Pool
+            drawOval(
+                Color(0x88330000).copy(alpha = corpseAlpha * 0.6f),
+                topLeft = Offset(baseP.x - 18f * camera.zoom, baseP.y - 8f * camera.zoom),
+                size = Size(36f * camera.zoom, 16f * camera.zoom)
+            )
+
+            // Tilted Body Line & Head
+            val lineThickness = 10f * camera.zoom
+            drawLine(
+                color = ownerColor.copy(alpha = corpseAlpha),
+                start = Offset(baseP.x, baseP.y),
+                end = Offset(headP.x, headP.y),
+                strokeWidth = lineThickness
+            )
+            drawCircle(
+                color = ownerColor.copy(alpha = corpseAlpha),
+                radius = 7f * camera.zoom,
+                center = Offset(headP.x, headP.y)
+            )
+
+            // Impact Dust cloud puff
+            if (collapseProgress in 0.8f..1.0f && progress < 0.6f) {
+                val dustPuffRadius = (progress * 45f) * camera.zoom
+                val dustAlpha = (1f - progress * 2f).coerceIn(0f, 0.5f)
+                drawCircle(
+                    color = Color(0xFF8D6E63).copy(alpha = dustAlpha),
+                    radius = dustPuffRadius,
+                    center = Offset(baseP.x, baseP.y),
+                    style = Stroke(width = 3f)
+                )
+            }
+
+            // Ascending Spirit Mark 💀
+            if (progress in 0.25f..0.85f) {
+                val spiritY = baseP.y - (progress * 55f)
+                val spiritAlpha = kotlin.math.sin(((progress - 0.25f) / 0.6f) * Math.PI).toFloat() * 0.85f
+                drawContext.canvas.nativeCanvas.drawText(
+                    "💀",
+                    baseP.x,
+                    spiritY,
+                    voiceTextPaint.apply {
+                        textSize = 26f * camera.zoom
+                        alpha = (spiritAlpha * 255).toInt().coerceIn(0, 255)
+                    }
+                )
+            }
+        }
+        return
+    }
+
     val sp = camera.project(particle.pos, screenWidth, screenHeight)
     if (!sp.isVisible) return
 

@@ -435,6 +435,15 @@ class GameViewModel : ViewModel() {
             _uiState.update { it.copy(screenState = GameScreenState.VICTORY, logMessage = "VICTORY! Enemy forces routed!") }
         }
 
+        // Trigger 3D death transition particle animations for units that died
+        currentUnits.filter { it.isDead() }.forEach { deadUnit ->
+            addParticle(
+                deadUnit.position,
+                "DEATH:${deadUnit.type.name}:${deadUnit.owner.name}:${deadUnit.rotationDegrees.toInt()}",
+                2500L
+            )
+        }
+
         _units.value = currentUnits.filter { !it.isDead() }
         _buildings.value = currentBuildings.filter { !it.isDead() }
         _resourceNodes.value = currentNodes.filter { !it.isDepleted() }
